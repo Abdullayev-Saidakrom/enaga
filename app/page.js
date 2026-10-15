@@ -72,9 +72,14 @@ export default function HomePage() {
       <div className="flex items-center justify-between px-6 pt-8 pb-4">
         <div className="font-display italic text-primaryDark text-xl">Enaga</div>
         {session === undefined ? null : session ? (
-          <button onClick={handleLogout} className="text-xs font-bold text-inkSoft">
-            Chiqish
-          </button>
+          <div className="flex items-center gap-3">
+            <Link href="/profile" className="text-xs font-bold text-primary">
+              Profilim
+            </Link>
+            <button onClick={handleLogout} className="text-xs font-bold text-inkSoft">
+              Chiqish
+            </button>
+          </div>
         ) : (
           <Link href="/login" className="text-xs font-bold text-primary">
             Kirish
