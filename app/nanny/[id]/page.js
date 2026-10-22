@@ -29,6 +29,10 @@ function todayStr() {
   return `${d.getFullYear()}-${m}-${day}`;
 }
 
+function dateOnly(ts) {
+  return ts ? String(ts).slice(0, 10) : '';
+}
+
 function TopBar() {
   return (
     <div className="flex items-center justify-between mb-6">
@@ -50,6 +54,7 @@ export default function NannyPage() {
   const [session, setSession] = useState(undefined);
   const [isParent, setIsParent] = useState(false);
   const [nanny, setNanny] = useState(null);
+  const [reviews, setReviews] = useState([]);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState('');
   const [date, setDate] = useState(todayStr());
@@ -96,6 +101,12 @@ export default function NannyPage() {
       } else {
         setNanny(data);
       }
+
+      const { data: revData } = await supabase.rpc('get_nanny_reviews', {
+        p_nanny_id: nannyId,
+      });
+      setReviews(revData || []);
+
       setLoading(false);
     }
     init();
@@ -206,6 +217,30 @@ export default function NannyPage() {
           </div>
         </div>
       )}
+
+      <div className="mb-6">
+        <h2 className="font-bold text-sm mb-3">Sharhlar</h2>
+        {reviews.length === 0 ? (
+          <p className="text-sm text-inkSoft">Hozircha sharhlar yo&apos;q.</p>
+        ) : (
+          <div className="flex flex-col gap-3">
+            {reviews.map((r, i) => (
+              <div key={i} className="bg-surface border border-border rounded-lg p-4">
+                <div className="flex items-center justify-between">
+                  <div className="text-accent text-base leading-none">
+                    {'★'.repeat(r.rating)}
+                    <span className="text-border">{'★'.repeat(5 - r.rating)}</span>
+                  </div>
+                  <span className="text-xs text-inkSoft">{dateOnly(r.created_at)}</span>
+                </div>
+                {r.comment && (
+                  <p className="text-sm text-inkSoft mt-2 leading-relaxed">{r.comment}</p>
+                )}
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
 
       <div className="border-t border-border pt-6">
         <h2 className="font-display text-lg mb-4">Band qilish</h2>
