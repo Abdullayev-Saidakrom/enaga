@@ -1,8 +1,22 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { supabase } from '../../lib/supabaseClient';
+
+function TopBar() {
+  return (
+    <div className="flex items-center justify-between mb-8">
+      <Link href="/" className="font-display italic text-primaryDark text-xl">
+        Enaga
+      </Link>
+      <Link href="/" className="text-xs font-bold text-primary">
+        Bosh sahifa
+      </Link>
+    </div>
+  );
+}
 
 export default function ProfilePage() {
   const router = useRouter();
@@ -118,7 +132,7 @@ export default function ProfilePage() {
   if (notNanny) {
     return (
       <main className="px-6 py-10">
-        <div className="font-display italic text-primaryDark text-xl mb-8">Enaga</div>
+        <TopBar />
         <p className="text-sm text-inkSoft">
           Bu sahifa faqat enaga sifatida ro&apos;yxatdan o&apos;tganlar uchun.
         </p>
@@ -128,7 +142,7 @@ export default function ProfilePage() {
 
   return (
     <main className="px-6 py-10 pb-16">
-      <div className="font-display italic text-primaryDark text-xl mb-8">Enaga</div>
+      <TopBar />
       <h1 className="font-display text-xl mb-1">Profilingizni to&apos;ldiring</h1>
       <p className="text-inkSoft text-sm mb-6">
         Bu ma&apos;lumotlar ota-onalarga ko&apos;rinadi
