@@ -31,9 +31,73 @@ function TopBar() {
   );
 }
 
+function ReviewForm({ bookingId, onDone }) {
+  const [rating, setRating] = useState(0);
+  const [comment, setComment] = useState('');
+  const [saving, setSaving] = useState(false);
+  const [err, setErr] = useState('');
+
+  async function submit() {
+    if (rating < 1) {
+      setErr('Iltimos, yulduzcha tanlang.');
+      return;
+    }
+    setSaving(true);
+    setErr('');
+    const { error } = await supabase.from('reviews').insert({
+      booking_id: bookingId,
+      rating,
+      comment: comment.trim() || null,
+    });
+    if (error) {
+      setErr(error.message);
+      setSaving(false);
+      return;
+    }
+    onDone(bookingId, rating, comment.trim());
+  }
+
+  return (
+    <div className="mt-4 pt-4 border-t border-border">
+      <div className="text-xs font-bold mb-2">Enagani baholang</div>
+      <div className="flex gap-1 mb-3">
+        {[1, 2, 3, 4, 5].map((n) => (
+          <button
+            key={n}
+            type="button"
+            onClick={() => setRating(n)}
+            className={`text-2xl leading-none ${
+              n <= rating ? 'text-accent' : 'text-border'
+            }`}
+            aria-label={`${n} yulduz`}
+          >
+            ★
+          </button>
+        ))}
+      </div>
+      <textarea
+        value={comment}
+        onChange={(e) => setComment(e.target.value)}
+        rows={3}
+        placeholder="Sharh yozing (ixtiyoriy)"
+        className="w-full border border-border rounded-lg p-3 text-sm bg-white"
+      />
+      {err && <p className="text-xs text-red-600 mt-2">{err}</p>}
+      <button
+        onClick={submit}
+        disabled={saving}
+        className="w-full mt-3 bg-primary text-white text-xs font-bold py-2 rounded-full disabled:opacity-50"
+      >
+        {saving ? 'Yuborilmoqda...' : 'Sharhni yuborish'}
+      </button>
+    </div>
+  );
+}
+
 export default function BookingsPage() {
   const router = useRouter();
   const [bookings, setBookings] = useState([]);
+  const [reviews, setReviews] = useState({});
   const [userId, setUserId] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -69,9 +133,26 @@ export default function BookingsPage() {
 
       if (loadError) {
         setError(loadError.message);
-      } else {
-        setBookings(data || []);
+        setLoading(false);
+        return;
       }
+
+      const list = data || [];
+      setBookings(list);
+
+      const ids = list.map((b) => b.id);
+      if (ids.length > 0) {
+        const { data: revData } = await supabase
+          .from('reviews')
+          .select('booking_id, rating, comment')
+          .in('booking_id', ids);
+        const map = {};
+        (revData || []).forEach((r) => {
+          map[r.booking_id] = r;
+        });
+        setReviews(map);
+      }
+
       setLoading(false);
     }
     init();
@@ -97,6 +178,13 @@ export default function BookingsPage() {
       );
     }
     setBusyId(null);
+  }
+
+  function handleReviewDone(bookingId, rating, comment) {
+    setReviews((prev) => ({
+      ...prev,
+      [bookingId]: { booking_id: bookingId, rating, comment },
+    }));
   }
 
   if (loading) {
@@ -128,6 +216,7 @@ export default function BookingsPage() {
           const isMine = b.parent_id === userId;
           const isNanny = b.nanny_id === userId;
           const busy = busyId === b.id;
+          const review = reviews[b.id];
           return (
             <div key={b.id} className="bg-surface border border-border rounded-lg p-4">
               <div className="flex items-start justify-between mb-2">
@@ -181,6 +270,22 @@ export default function BookingsPage() {
                     Yakunlandi deb belgilash
                   </button>
                 </div>
+              )}
+
+              {b.status === 'completed' && review && (
+                <div className="mt-4 pt-4 border-t border-border">
+                  <div className="text-accent text-lg leading-none">
+                    {'★'.repeat(review.rating)}
+                    <span className="text-border">{'★'.repeat(5 - review.rating)}</span>
+                  </div>
+                  {review.comment && (
+                    <p className="text-xs text-inkSoft mt-2">{review.comment}</p>
+                  )}
+                </div>
+              )}
+
+              {isMine && b.status === 'completed' && !review && (
+                <ReviewForm bookingId={b.id} onDone={handleReviewDone} />
               )}
             </div>
           );
