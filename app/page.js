@@ -73,6 +73,9 @@ export default function HomePage() {
         <div className="font-display italic text-primaryDark text-xl">Enaga</div>
         {session === undefined ? null : session ? (
           <div className="flex items-center gap-3">
+            <Link href="/bookings" className="text-xs font-bold text-primary">
+              Buyurtmalar
+            </Link>
             <Link href="/profile" className="text-xs font-bold text-primary">
               Profilim
             </Link>
@@ -124,9 +127,10 @@ export default function HomePage() {
           </p>
         )}
         {nannies.map((n) => (
-          <div
+          <Link
             key={n.user_id}
-            className="flex gap-3 bg-surface border border-border rounded-lg p-4"
+            href={`/nanny/${n.user_id}`}
+            className="flex gap-3 bg-surface border border-border rounded-lg p-4 active:scale-[0.98] transition-transform"
           >
             <div className="w-14 h-14 shrink-0 rounded-full bg-primary text-white flex items-center justify-center font-display font-semibold">
               {initials(n.users?.full_name)}
@@ -145,9 +149,10 @@ export default function HomePage() {
                 <span className="font-extrabold text-sm">
                   {fmt(n.hourly_rate)} <small className="font-semibold text-inkSoft">so&apos;m/soat</small>
                 </span>
+                <span className="text-xs font-bold text-primary">Ko&apos;rish</span>
               </div>
             </div>
-          </div>
+          </Link>
         ))}
       </div>
     </main>
