@@ -37,6 +37,7 @@ export default function BookingsPage() {
   const [userId, setUserId] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [busyId, setBusyId] = useState(null);
 
   useEffect(() => {
     async function init() {
@@ -76,6 +77,28 @@ export default function BookingsPage() {
     init();
   }, [router]);
 
+  async function changeStatus(id, newStatus) {
+    setBusyId(id);
+    setError('');
+
+    const { data, error: updError } = await supabase
+      .from('bookings')
+      .update({ status: newStatus })
+      .eq('id', id)
+      .select('id, status');
+
+    if (updError) {
+      setError(updError.message);
+    } else if (!data || data.length === 0) {
+      setError("Statusni o'zgartirib bo'lmadi (ruxsat yo'q).");
+    } else {
+      setBookings((prev) =>
+        prev.map((b) => (b.id === id ? { ...b, status: newStatus } : b))
+      );
+    }
+    setBusyId(null);
+  }
+
   if (loading) {
     return (
       <main className="px-6 py-10">
@@ -103,6 +126,8 @@ export default function BookingsPage() {
       <div className="flex flex-col gap-3">
         {bookings.map((b) => {
           const isMine = b.parent_id === userId;
+          const isNanny = b.nanny_id === userId;
+          const busy = busyId === b.id;
           return (
             <div key={b.id} className="bg-surface border border-border rounded-lg p-4">
               <div className="flex items-start justify-between mb-2">
@@ -126,6 +151,37 @@ export default function BookingsPage() {
                   {fmt(b.total_price)} <small className="font-semibold text-inkSoft">so&apos;m</small>
                 </span>
               </div>
+
+              {isNanny && b.status === 'pending' && (
+                <div className="flex gap-2 mt-4">
+                  <button
+                    onClick={() => changeStatus(b.id, 'confirmed')}
+                    disabled={busy}
+                    className="flex-1 bg-primary text-white text-xs font-bold py-2 rounded-full disabled:opacity-50"
+                  >
+                    Tasdiqlash
+                  </button>
+                  <button
+                    onClick={() => changeStatus(b.id, 'cancelled')}
+                    disabled={busy}
+                    className="flex-1 border border-border text-xs font-bold py-2 rounded-full disabled:opacity-50"
+                  >
+                    Rad etish
+                  </button>
+                </div>
+              )}
+
+              {isNanny && b.status === 'confirmed' && (
+                <div className="mt-4">
+                  <button
+                    onClick={() => changeStatus(b.id, 'completed')}
+                    disabled={busy}
+                    className="w-full bg-primary text-white text-xs font-bold py-2 rounded-full disabled:opacity-50"
+                  >
+                    Yakunlandi deb belgilash
+                  </button>
+                </div>
+              )}
             </div>
           );
         })}
