@@ -6,6 +6,8 @@ import { supabase } from '../../lib/supabaseClient';
 
 export default function SignupPage() {
   const [fullName, setFullName] = useState('');
+  const [phone, setPhone] = useState('');
+  const [address, setAddress] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [role, setRole] = useState('parent');
@@ -22,7 +24,12 @@ export default function SignupPage() {
       email,
       password,
       options: {
-        data: { full_name: fullName, role },
+        data: {
+          full_name: fullName,
+          role,
+          phone: phone.trim(),
+          address: role === 'parent' ? address.trim() : '',
+        },
       },
     });
 
@@ -41,13 +48,13 @@ export default function SignupPage() {
         <h1 className="font-display text-xl mb-3">Email tasdiqlang</h1>
         <p className="text-inkSoft text-sm leading-relaxed">
           {email} manziliga tasdiqlash xati yubordik. Xatdagi havolani bosib,
-          so'ngra tizimga kiring.
+          so&apos;ngra tizimga kiring.
         </p>
         <Link
           href="/login"
           className="inline-block mt-6 bg-primary text-white font-bold text-sm px-6 py-3 rounded-md"
         >
-          Kirish sahifasiga o'tish
+          Kirish sahifasiga o&apos;tish
         </Link>
       </main>
     );
@@ -56,8 +63,8 @@ export default function SignupPage() {
   return (
     <main className="px-6 py-10">
       <div className="font-display italic text-primaryDark text-xl mb-8">Enaga</div>
-      <h1 className="font-display text-xl mb-1">Ro'yxatdan o'tish</h1>
-      <p className="text-inkSoft text-sm mb-6">Bir necha daqiqada tayyor bo'ladi</p>
+      <h1 className="font-display text-xl mb-1">Ro&apos;yxatdan o&apos;tish</h1>
+      <p className="text-inkSoft text-sm mb-6">Bir necha daqiqada tayyor bo&apos;ladi</p>
 
       <div className="flex gap-2 mb-6">
         <button
@@ -95,6 +102,33 @@ export default function SignupPage() {
             placeholder="Masalan: Nilufar Yusupova"
           />
         </div>
+        <div>
+          <label className="text-xs font-bold text-inkSoft mb-1 block">Telefon raqam</label>
+          <input
+            required
+            type="tel"
+            minLength={9}
+            value={phone}
+            onChange={(e) => setPhone(e.target.value)}
+            className="w-full border border-border rounded-md px-4 py-3 text-sm bg-surface outline-none"
+            placeholder="+998 90 123 45 67"
+          />
+        </div>
+        {role === 'parent' && (
+          <div>
+            <label className="text-xs font-bold text-inkSoft mb-1 block">Manzil</label>
+            <input
+              required
+              value={address}
+              onChange={(e) => setAddress(e.target.value)}
+              className="w-full border border-border rounded-md px-4 py-3 text-sm bg-surface outline-none"
+              placeholder="Tuman, ko'cha, uy"
+            />
+            <p className="text-xs text-inkSoft mt-1">
+              Manzil enagaga faqat buyurtmani tasdiqlaganidan keyin ko&apos;rinadi.
+            </p>
+          </div>
+        )}
         <div>
           <label className="text-xs font-bold text-inkSoft mb-1 block">Email</label>
           <input
