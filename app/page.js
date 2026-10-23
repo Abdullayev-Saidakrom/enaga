@@ -36,6 +36,7 @@ const RATING_OPTIONS = [
 
 export default function HomePage() {
   const [session, setSession] = useState(undefined);
+  const [isNanny, setIsNanny] = useState(false);
   const [nannies, setNannies] = useState([]);
   const [districts, setDistricts] = useState([]);
   const [loadingNannies, setLoadingNannies] = useState(true);
@@ -52,6 +53,22 @@ export default function HomePage() {
     });
     return () => listener.subscription.unsubscribe();
   }, []);
+
+  useEffect(() => {
+    async function checkNanny() {
+      if (!session) {
+        setIsNanny(false);
+        return;
+      }
+      const { data } = await supabase
+        .from('nanny_profiles')
+        .select('user_id')
+        .eq('user_id', session.user.id)
+        .maybeSingle();
+      setIsNanny(!!data);
+    }
+    checkNanny();
+  }, [session]);
 
   useEffect(() => {
     async function loadNannies() {
@@ -123,9 +140,11 @@ export default function HomePage() {
             <Link href="/bookings" className="text-xs font-bold text-primary">
               Buyurtmalar
             </Link>
-            <Link href="/profile" className="text-xs font-bold text-primary">
-              Profilim
-            </Link>
+            {isNanny && (
+              <Link href="/profile" className="text-xs font-bold text-primary">
+                Profilim
+              </Link>
+            )}
             <button onClick={handleLogout} className="text-xs font-bold text-inkSoft">
               Chiqish
             </button>
