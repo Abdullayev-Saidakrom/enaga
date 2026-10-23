@@ -36,7 +36,7 @@ const RATING_OPTIONS = [
 
 export default function HomePage() {
   const [session, setSession] = useState(undefined);
-  const [isNanny, setIsNanny] = useState(false);
+  const [role, setRole] = useState(null); // 'nanny' | 'parent' | null
   const [nannies, setNannies] = useState([]);
   const [districts, setDistricts] = useState([]);
   const [loadingNannies, setLoadingNannies] = useState(true);
@@ -45,6 +45,8 @@ export default function HomePage() {
   const [districtFilter, setDistrictFilter] = useState('');
   const [priceFilter, setPriceFilter] = useState('');
   const [ratingFilter, setRatingFilter] = useState('');
+
+  const isNanny = role === 'nanny';
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => setSession(data.session));
@@ -55,19 +57,28 @@ export default function HomePage() {
   }, []);
 
   useEffect(() => {
-    async function checkNanny() {
+    async function checkRole() {
       if (!session) {
-        setIsNanny(false);
+        setRole(null);
         return;
       }
-      const { data } = await supabase
+      const { data: nannyRow } = await supabase
         .from('nanny_profiles')
         .select('user_id')
         .eq('user_id', session.user.id)
         .maybeSingle();
-      setIsNanny(!!data);
+      if (nannyRow) {
+        setRole('nanny');
+        return;
+      }
+      const { data: parentRow } = await supabase
+        .from('parent_profiles')
+        .select('user_id')
+        .eq('user_id', session.user.id)
+        .maybeSingle();
+      setRole(parentRow ? 'parent' : null);
     }
-    checkNanny();
+    checkRole();
   }, [session]);
 
   useEffect(() => {
@@ -155,6 +166,21 @@ export default function HomePage() {
           </Link>
         )}
       </div>
+
+      {role && (
+        <div className="px-6 mb-4">
+          <span
+            className={`inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-bold ${
+              isNanny
+                ? 'bg-accentSoft text-primaryDark'
+                : 'bg-primarySoft text-primaryDark'
+            }`}
+          >
+            <span>{isNanny ? '🍼' : '👪'}</span>
+            {isNanny ? 'Enaga akkaunti' : 'Ota-ona akkaunti'}
+          </span>
+        </div>
+      )}
 
       <div className="mx-6 mb-6 p-5 rounded-lg bg-primary text-white">
         <h1 className="font-display text-lg mb-2 max-w-[220px]">
