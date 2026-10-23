@@ -19,11 +19,31 @@ function initials(name) {
     .join('');
 }
 
+const PRICE_OPTIONS = [
+  { value: '', label: 'Har qanday narx' },
+  { value: '30000', label: '30 000 gacha' },
+  { value: '50000', label: '50 000 gacha' },
+  { value: '80000', label: '80 000 gacha' },
+  { value: '120000', label: '120 000 gacha' },
+];
+
+const RATING_OPTIONS = [
+  { value: '', label: 'Har qanday reyting' },
+  { value: '3', label: '3.0 va yuqori' },
+  { value: '4', label: '4.0 va yuqori' },
+  { value: '4.5', label: '4.5 va yuqori' },
+];
+
 export default function HomePage() {
   const [session, setSession] = useState(undefined);
   const [nannies, setNannies] = useState([]);
+  const [districts, setDistricts] = useState([]);
   const [loadingNannies, setLoadingNannies] = useState(true);
   const [loadError, setLoadError] = useState('');
+
+  const [districtFilter, setDistrictFilter] = useState('');
+  const [priceFilter, setPriceFilter] = useState('');
+  const [ratingFilter, setRatingFilter] = useState('');
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => setSession(data.session));
@@ -41,6 +61,7 @@ export default function HomePage() {
         .select(
           `
           user_id,
+          district_id,
           bio,
           experience_years,
           hourly_rate,
@@ -60,12 +81,38 @@ export default function HomePage() {
       }
       setLoadingNannies(false);
     }
+    async function loadDistricts() {
+      const { data } = await supabase
+        .from('districts')
+        .select('id, name')
+        .order('name');
+      setDistricts(data || []);
+    }
     loadNannies();
+    loadDistricts();
   }, []);
 
   async function handleLogout() {
     await supabase.auth.signOut();
   }
+
+  function clearFilters() {
+    setDistrictFilter('');
+    setPriceFilter('');
+    setRatingFilter('');
+  }
+
+  const hasFilter = districtFilter || priceFilter || ratingFilter;
+
+  const filtered = nannies.filter((n) => {
+    if (districtFilter && n.district_id !== districtFilter) return false;
+    if (priceFilter && Number(n.hourly_rate) > Number(priceFilter)) return false;
+    if (ratingFilter && Number(n.rating || 0) < Number(ratingFilter)) return false;
+    return true;
+  });
+
+  const selectClass =
+    'w-full border border-border rounded-md px-3 py-2 text-xs bg-surface outline-none';
 
   return (
     <main className="pb-10">
@@ -109,9 +156,58 @@ export default function HomePage() {
         </div>
       )}
 
+      <div className="px-6 mb-4">
+        <div className="flex flex-col gap-2">
+          <select
+            value={districtFilter}
+            onChange={(e) => setDistrictFilter(e.target.value)}
+            className={selectClass}
+          >
+            <option value="">Barcha tumanlar</option>
+            {districts.map((d) => (
+              <option key={d.id} value={d.id}>
+                {d.name}
+              </option>
+            ))}
+          </select>
+          <div className="flex gap-2">
+            <select
+              value={priceFilter}
+              onChange={(e) => setPriceFilter(e.target.value)}
+              className={selectClass}
+            >
+              {PRICE_OPTIONS.map((o) => (
+                <option key={o.value} value={o.value}>
+                  {o.label}
+                </option>
+              ))}
+            </select>
+            <select
+              value={ratingFilter}
+              onChange={(e) => setRatingFilter(e.target.value)}
+              className={selectClass}
+            >
+              {RATING_OPTIONS.map((o) => (
+                <option key={o.value} value={o.value}>
+                  {o.label}
+                </option>
+              ))}
+            </select>
+          </div>
+          {hasFilter && (
+            <button
+              onClick={clearFilters}
+              className="text-xs font-bold text-primary text-left"
+            >
+              Filtrni tozalash
+            </button>
+          )}
+        </div>
+      </div>
+
       <div className="px-6 mb-3 flex items-baseline justify-between">
         <h2 className="font-bold text-sm">Enagalar</h2>
-        <span className="text-xs text-inkSoft">{nannies.length} ta</span>
+        <span className="text-xs text-inkSoft">{filtered.length} ta</span>
       </div>
 
       <div className="px-6 flex flex-col gap-3">
@@ -126,7 +222,12 @@ export default function HomePage() {
             Hozircha enagalar yo&apos;q. Birinchi enaga sifatida ro&apos;yxatdan o&apos;ting.
           </p>
         )}
-        {nannies.map((n) => (
+        {!loadingNannies && !loadError && nannies.length > 0 && filtered.length === 0 && (
+          <p className="text-sm text-inkSoft">
+            Bu filtrga mos enaga topilmadi. Filtrni o&apos;zgartirib ko&apos;ring.
+          </p>
+        )}
+        {filtered.map((n) => (
           <Link
             key={n.user_id}
             href={`/nanny/${n.user_id}`}
