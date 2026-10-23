@@ -18,6 +18,13 @@ function fmt(n) {
     .replace(/\B(?=(\d{3})+(?!\d))/g, ' ');
 }
 
+async function fetchContact(bookingId) {
+  const { data } = await supabase.rpc('get_parent_contact', {
+    p_booking_id: bookingId,
+  });
+  return data && data.length > 0 ? data[0] : null;
+}
+
 function TopBar() {
   return (
     <div className="flex items-center justify-between mb-6">
@@ -98,6 +105,7 @@ export default function BookingsPage() {
   const router = useRouter();
   const [bookings, setBookings] = useState([]);
   const [reviews, setReviews] = useState({});
+  const [contacts, setContacts] = useState({});
   const [userId, setUserId] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -153,6 +161,22 @@ export default function BookingsPage() {
         setReviews(map);
       }
 
+      const eligible = list.filter(
+        (b) =>
+          b.nanny_id === s.user.id &&
+          (b.status === 'confirmed' || b.status === 'completed')
+      );
+      if (eligible.length > 0) {
+        const results = await Promise.all(
+          eligible.map(async (b) => [b.id, await fetchContact(b.id)])
+        );
+        const cmap = {};
+        results.forEach(([id, c]) => {
+          if (c) cmap[id] = c;
+        });
+        setContacts(cmap);
+      }
+
       setLoading(false);
     }
     init();
@@ -176,6 +200,10 @@ export default function BookingsPage() {
       setBookings((prev) =>
         prev.map((b) => (b.id === id ? { ...b, status: newStatus } : b))
       );
+      if (newStatus === 'confirmed') {
+        const c = await fetchContact(id);
+        if (c) setContacts((prev) => ({ ...prev, [id]: c }));
+      }
     }
     setBusyId(null);
   }
@@ -217,6 +245,7 @@ export default function BookingsPage() {
           const isNanny = b.nanny_id === userId;
           const busy = busyId === b.id;
           const review = reviews[b.id];
+          const contact = contacts[b.id];
           return (
             <div key={b.id} className="bg-surface border border-border rounded-lg p-4">
               <div className="flex items-start justify-between mb-2">
@@ -224,7 +253,7 @@ export default function BookingsPage() {
                   <div className="font-bold text-sm">
                     {isMine
                       ? b.nanny_profiles?.users?.full_name || 'Enaga'
-                      : 'Yangi buyurtma'}
+                      : contact?.full_name || 'Yangi buyurtma'}
                   </div>
                   <div className="text-xs text-inkSoft mt-1">
                     {b.booking_date}, {b.hours} soat
@@ -240,6 +269,18 @@ export default function BookingsPage() {
                   {fmt(b.total_price)} <small className="font-semibold text-inkSoft">so&apos;m</small>
                 </span>
               </div>
+
+              {isNanny && contact && (
+                <div className="mt-4 pt-4 border-t border-border text-xs">
+                  <div className="font-bold mb-2">Ota-ona ma&apos;lumoti</div>
+                  <div className="text-inkSoft leading-relaxed">
+                    <div>Ism: {contact.full_name || "ko'rsatilmagan"}</div>
+                    <div>Telefon: {contact.phone || "ko'rsatilmagan"}</div>
+                    <div>Email: {contact.email || "ko'rsatilmagan"}</div>
+                    <div>Manzil: {contact.address || "ko'rsatilmagan"}</div>
+                  </div>
+                </div>
+              )}
 
               {isNanny && b.status === 'pending' && (
                 <div className="flex gap-2 mt-4">
